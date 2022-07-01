@@ -1,0 +1,18 @@
+--------------------------------------------------------------------------------
+This directory contains tools that help preparing Peacemaker input. These tools
+are primarily written in python3 and awk. This file contains short descriptions
+of each tool.
+--------------------------------------------------------------------------------
+
+hess2flist.awk:
+    Converts an Orca Hessian file to a frequency list file.
+
+vdw_sum_volume.py:
+    Calculates the cluster volume using the old, sum-of-spheres approach.
+
+vibspectrum2flist.awk:
+    Converts a Turbomole vibspectrum file to a frequency list file.
+
+xyzr.py:
+    Creates an xyzr file that can be used as input for quick_gepol.
+    Quick_gepol may be obtained upon request from the Peacemaker authors.
