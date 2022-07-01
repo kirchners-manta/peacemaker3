@@ -397,8 +397,8 @@ module input
             p => cfg%get_record("qce", "optimizer")
             if (associated(p)) call process_optimizer_record(p)
 
-            ! Get interactive mode
-            p => cfg%get_record("qce", "interactive")
+            ! Get interface mode
+            p => cfg%get_record("qce", "interface_mode")
             if (associated(p)) then
                 pmk_input%imode = .true.
             end if
