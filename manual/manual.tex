@@ -151,6 +151,8 @@ All elements are case sensitive.
 The following input file will run a QCE "single point" calculation for a one-component system using the clusterset specified in the command line and explained in section~\vref{sec:clusterset}.
 Default options are used in most cases.
 
+\
+
 \begin{addmargin}[1cm]{0cm}
     \ttfamily
     \begin{minipage}{\textwidth}
@@ -171,9 +173,13 @@ Default options are used in most cases.
     \end{minipage}
 \end{addmargin}
 
+\
+
 The following input will perform an $\amf$, $\bxv$ parameter sampling for a pure substance.
 Reference data are provided by an isobar file.
 Further details on parameter sampling are explained in section~\vref{sec:sampling}.
+
+\
 
 \begin{addmargin}[1cm]{0cm}
     \ttfamily
@@ -209,47 +215,55 @@ Further details on parameter sampling are explained in section~\vref{sec:samplin
     \end{minipage}
 \end{addmargin}
 
-The following input will perform an $\amf^{\mathrm{mix}}$ parameter sampling for a binary mixture.
-Reference data are provided by a density at \SI{298.15}{K} and a temperature of phase transition.
+\
 
-\begin{addmargin}[1cm]{0cm}
-    \ttfamily
-    \begin{minipage}{\textwidth}
-        [system]
-        \begin{addmargin}[1cm]{0cm}
-            components 2
-        \end{addmargin}
-    \end{minipage}
-
-    \begin{minipage}{\textwidth}
-        [qce]
-        \begin{addmargin}[1cm]{0cm}
-            bxv\_pure 1.2 1.6 \\
-            amf\_pure 0.2 0.8 \# J*m\^{}3/mol\^{}2 \\
-            amf\_mix 0.0 0.5 101 \# J*m\^{}3/mol\^{}2
-        \end{addmargin}
-    \end{minipage}
-
-    \begin{minipage}{\textwidth}
-        [ensemble]
-        \begin{addmargin}[1cm]{0cm}
-            temperature 200.0 400.0 201 \# K \\
-            pressure 1.01325 \# bar \\
-            monomer\_amounts 0.5 0.5 \# mol
-        \end{addmargin}
-    \end{minipage}
-
-    \begin{minipage}{\textwidth}
-        [reference]
-        \begin{addmargin}[1cm]{0cm}
-            density 298.15 1.023 \# K; g/cm\^{}3 \\
-            phase\_transition 373.15 \# K
-        \end{addmargin}
-    \end{minipage}
-\end{addmargin}
+%The following input will perform an $\amf^{\mathrm{mix}}$ parameter sampling for a binary mixture.
+%Reference data are provided by a density at \SI{298.15}{K} and a temperature of phase transition.
+%
+%\
+%
+%\begin{addmargin}[1cm]{0cm}
+%    \ttfamily
+%    \begin{minipage}{\textwidth}
+%        [system]
+%        \begin{addmargin}[1cm]{0cm}
+%            components 2
+%        \end{addmargin}
+%    \end{minipage}
+%
+%    \begin{minipage}{\textwidth}
+%        [qce]
+%        \begin{addmargin}[1cm]{0cm}
+%            bxv\_pure 1.2 1.6 \\
+%            amf\_pure 0.2 0.8 \# J*m\^{}3/mol\^{}2 \\
+%            amf\_mix 0.0 0.5 101 \# J*m\^{}3/mol\^{}2
+%        \end{addmargin}
+%    \end{minipage}
+%
+%    \begin{minipage}{\textwidth}
+%        [ensemble]
+%        \begin{addmargin}[1cm]{0cm}
+%            temperature 200.0 400.0 201 \# K \\
+%            pressure 1.01325 \# bar \\
+%            monomer\_amounts 0.5 0.5 \# mol
+%        \end{addmargin}
+%    \end{minipage}
+%
+%    \begin{minipage}{\textwidth}
+%        [reference]
+%        \begin{addmargin}[1cm]{0cm}
+%            density 298.15 1.023 \# K; g/cm\^{}3 \\
+%            phase\_transition 373.15 \# K
+%        \end{addmargin}
+%    \end{minipage}
+%\end{addmargin}
+%
+%\
 
 The following input will perform an $\amf$, $\bxv$ parameter optimization for a ternary mixture, following a rough sampling on a small grid.
 Reference data are provided by a density at \SI{298.15}{K} and a temperature of phase transition.
+
+\
 
 \begin{addmargin}[1cm]{0cm}
     \ttfamily
@@ -266,7 +280,7 @@ Reference data are provided by a density at \SI{298.15}{K} and a temperature of 
             amf 0.0 2.0 11 \# J*m\^{}3/mol\^{}2 \\
             bxv 0.5 1.5 11 \\
             grid\_iterations 2 \\
-            optimizer 1
+            optimizer 11
         \end{addmargin}
     \end{minipage}
 
@@ -287,6 +301,8 @@ Reference data are provided by a density at \SI{298.15}{K} and a temperature of 
         \end{addmargin}
     \end{minipage}
 \end{addmargin}
+
+\
 
 While hopefully self-explaining, all sections and their associated keywords shall be explained in the following.
 
@@ -311,40 +327,65 @@ While hopefully self-explaining, all sections and their associated keywords shal
         For multi-component mixtures, this keyword is equivalent to \texttt{amf\_mix}.
         Optional. Default: 0.0
         \vspace{0.1cm}
-    \item[amf\_pure A B C ...] \hfill \\
-        The pure-component mean field parameters $\amf^{a}$, $\amf^{b}$, ..., $\amf^{n}$ in units of \si{\joule\cubic\meter\per\mole\squared}.
-        May be specified for multi-component mixtures only.
-        Optional. If unspecified, $\amf^a = \amf^b = ... = \amf^n = \amf^{ab...n}$ is used.
-        \vspace{0.1cm}
-    \item[amf\_mix A]
-    \item[amf\_mix A B N] \hfill \\
-        The mixed-species mean field parameter $\amf^{ab}$ in units of \si{\joule\cubic\meter\per\mole\squared}.
-        Can be specified either as a single value A, or as a range A, B, N, where A is the start, B the end, and N the number of data points (including both boundaries).
-        For multi-component mixtures, this keyword is equivalent to \texttt{amf}.
-        Optional. Default: 0.0
-        \vspace{0.1cm}
+%    \item[amf\_pure A B C ...] \hfill \\
+%        The pure-component mean field parameters $\amf^{a}$, $\amf^{b}$, ..., $\amf^{n}$ in units of \si{\joule\cubic\meter\per\mole\squared}.
+%        May be specified for multi-component mixtures only.
+%        Optional. If unspecified, $\amf^a = \amf^b = ... = \amf^n = \amf^{ab...n}$ is used.
+%        \vspace{0.1cm}
+%    \item[amf\_mix A]
+%    \item[amf\_mix A B N] \hfill \\
+%        The mixed-species mean field parameter $\amf^{ab}$ in units of \si{\joule\cubic\meter\per\mole\squared}.
+%        Can be specified either as a single value A, or as a range A, B, N, where A is the start, B the end, and N the number of data points (including both boundaries).
+%        For multi-component mixtures, this keyword is equivalent to \texttt{amf}.
+%        Optional. Default: 0.0
+%        \vspace{0.1cm}
     \item[bxv A]
     \item[bxv A B N] \hfill \\
         The exclusion volume scaling parameter $\bxv$.
         Can be specified either as a single value A, or as a range A, B, N, where A is the start, B the end, and N the number of data points (including both boundaries).
         Optional. Default: 1.0
         \vspace{0.1cm}
-    \item[bxv\_pure A B] \hfill \\
-        The pure-component exclusion volume scaling parameters $\bxv^{a}$ and $\bxv^{b}$.
-        May be specified for binary mixtures only.
-        Optional. Default: 1.0
+%    \item[bxv\_pure A B] \hfill \\
+%        The pure-component exclusion volume scaling parameters $\bxv^{a}$ and $\bxv^{b}$.
+%        May be specified for binary mixtures only.
+%        Optional. Default: 1.0
+%        \vspace{0.1cm}
+    \item[amf\_temp A]
+    \item[amf\_temp A B N] \hfill \\
+        The linear temperature dependence parameter $a_\mathrm{mf,temp}$ of the mean field.
+        \textbf{Experimental! Do not use.}
+        Optional. Default: 0.0
+        \vspace{0.1cm}
+    \item[bxv\_temp A]
+    \item[bxv\_temp A B N] \hfill \\
+        The linear temperature dependence parameter $b_\mathrm{xv,temp}$ of the exclusion volume.
+        \textbf{Experimental! Do not use.}
+        Optional. Default: 0.0
         \vspace{0.1cm}
     \item[grid\_iterations A] \hfill \\
         The number of iterations for the parameter sampling if a sampling grid is specified.
         With each iteration, the grid center is moved to the best parameter pair and the grid size is decreased with a factor of 0.2.
         Optional. Default: 1
-    \item[optimizer A] \hfill \\
-        Specifies which optimization algorithm will be used.
-        Can be set to 0 (no optimization) or 1 (Nelder-Mead method).
-        Optional. Default: 0
     \item[rotor\_cutoff A] \hfill \\
         The cutoff frequency in cm$^{-1}$ at which the RRHO-correction for low frequencies will be used.
         To limit their influence on the entropy, vibrational modes with a frequency below A will be treated as hindered rotations, employing a switching function to smooth the transition between harmonic oscillator and rigid rotator. If set to 0, no correction will be applied.
+        Optional. Default: 0
+    \item[optimizer A] \hfill \\
+        Enables the Nelder--Mead algorithm for parameter optimization.
+        A is a 4 bit number that specifies which parameters should be optimized.
+        Each optimizable parameter is assigned a specific value:
+        \begin{table}[h!]
+        \hspace{1cm}
+        \begin{tabular}{lr}
+        $a_\mathrm{mf}$      &    1 \\
+        $b_\mathrm{xv}$      &   10 \\
+        $a_\mathrm{mf,temp}$ &  100 \\
+        $b_\mathrm{xv,temp}$ & 1000 \\
+        \end{tabular}
+        \end{table}
+        
+        A is the sum of the values associated with the parameters that should be optimized, i.e., to optimize $a_\mathrm{mf}$ and $b_\mathrm{xv}$ it should be set to 11.
+        \textbf{All settings except 0 and 11 should currently be considered experimental.}
         Optional. Default: 0
     \item[max\_deviation A] \hfill \\
         The maximum relative deviation of the Gibbs energy.
