@@ -172,6 +172,13 @@ module cluster
                     call pmk_missing_key_error("sigma", c%label)
                 end if
     
+                ! Get the cluster volume.
+                p => cfg%get_record(c%label, "volume")
+                if (associated(p)) then
+                    call process_volume_record(c, p%nr_args, p%args)
+                else
+                    c%volume = -1.0_dp
+                end if
             end do
     
             ! Set up the monomer array, assuming that everything is alright. We will check
@@ -187,9 +194,10 @@ module cluster
             end do
     
             ! Calculate cluster volumes, assuming that everything is alright. We will
-            ! check for errors later.
+            ! check for errors later. Consider only clusters for which no volume was
+            ! specified in the clusterset.
             do i = 1, nr_clusters
-                if (clusterset(i)%monomer) cycle
+                if (clusterset(i)%monomer .or. clusterset(i)%volume > 0.0_dp) cycle
                 clusterset(i)%volume = 0.0_dp
                 do j = 1, pmk_input%components
                     clusterset(i)%volume = clusterset(i)%volume + &

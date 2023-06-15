@@ -54,7 +54,7 @@ module qce
         real(dp) :: amf, bxv, amf_temp, bxv_temp, error
         integer, dimension(:), allocatable :: solution
         logical, dimension(:), allocatable :: converged
-        real(dp), dimension(:), allocatable :: vol, temp, gibbs
+        real(dp), dimension(:), allocatable :: vol, vexcl, temp, gibbs
         real(dp), dimension(:, :), allocatable :: populations
         type(pf_t), dimension(:, :), allocatable :: lnq
     end type isobar_t
@@ -144,12 +144,14 @@ module qce
             global_data%mtot = global_data%mtot / 1000.0_dp
     
             ! Excluded volume
-            global_data%vexcl = 0.0_dp
-            do i = 1, size(monomer)
-                global_data%vexcl = global_data%vexcl + &
-                    global_data%monomer_amounts(i)*clusterset(monomer(i))%volume
-            end do
-            global_data%vexcl = global_data%vexcl*avogadro*1.0e-30_dp
+            ! The excluded volume is not treated as constant anymore and is no longer
+            ! saved in the global_data class.
+            !global_data%vexcl = 0.0_dp
+            !do i = 1, size(monomer)
+            !    global_data%vexcl = global_data%vexcl + &
+            !        global_data%monomer_amounts(i)*clusterset(monomer(i))%volume
+            !end do
+            !global_data%vexcl = global_data%vexcl*avogadro*1.0e-30_dp
         end subroutine initialize_conserved_quantities
         !=================================================================================
         ! Initializes the degree of the population and mass polynomials.
@@ -201,6 +203,7 @@ module qce
                 
                                 allocate(ib%temp(global_data%temp%num))
                                 allocate(ib%vol(global_data%temp%num))
+                                allocate(ib%vexcl(global_data%temp%num))
                                 allocate(ib%gibbs(global_data%temp%num))
                                 allocate(ib%converged(global_data%temp%num))
                                 allocate(ib%solution(global_data%temp%num))
@@ -229,6 +232,7 @@ module qce
                         
                                 deallocate(ib%temp)
                                 deallocate(ib%vol)
+                                deallocate(ib%vexcl)
                                 deallocate(ib%gibbs)
                                 deallocate(ib%converged)
                                 deallocate(ib%solution)
@@ -668,6 +672,7 @@ module qce
 
             allocate(ib%temp(global_data%temp%num))
             allocate(ib%vol(global_data%temp%num))
+            allocate(ib%vexcl(global_data%temp%num))
             allocate(ib%gibbs(global_data%temp%num))
             allocate(ib%converged(global_data%temp%num))
             allocate(ib%solution(global_data%temp%num))
@@ -694,6 +699,7 @@ module qce
     
             deallocate(ib%temp)
             deallocate(ib%vol)
+            deallocate(ib%vexcl)
             deallocate(ib%gibbs)
             deallocate(ib%converged)
             deallocate(ib%solution)
@@ -710,6 +716,7 @@ module qce
             real(dp):: bxv
             real(dp):: v0
             real(dp):: vdamp
+            real(dp):: vexcl
             real(dp):: vol
             real(dp):: gibbs
             real(dp):: error
@@ -743,11 +750,12 @@ module qce
                 bxv = ib%bxv + ib%temp(itemp) * ib%bxv_temp
                 
                 ! Perform QCE iteration.
-                call qce_iteration(0.0_dp, bxv, ib%temp(itemp), v0, vdamp, vol, &
+                call qce_iteration(0.0_dp, bxv, ib%temp(itemp), v0, vdamp, vexcl, vol, &
                     gibbs, populations(:), lnq(:), 1, converged)
                 ! Copy results.
                 ib%gibbs(itemp) = gibbs
                 ib%vol(itemp) = vol
+                ib%vexcl(itemp) = vexcl
                 ib%lnq(itemp, :) = lnq(:)
                 ib%converged(itemp) = converged
                 ib%populations(itemp, :) = populations(:)
@@ -773,7 +781,7 @@ module qce
                 amf = ib%amf + ib%temp(itemp) * ib%amf_temp
                 bxv = ib%bxv + ib%temp(itemp) * ib%bxv_temp
 
-                call qce_iteration(amf, bxv, ib%temp(itemp), v0, vdamp, vol, &
+                call qce_iteration(amf, bxv, ib%temp(itemp), v0, vdamp, vexcl, vol, &
                     gibbs, populations(:), lnq(:), 2, converged)
                 ! Copy results, if necessary.
                 if (converged) then
@@ -788,6 +796,7 @@ module qce
                     if (copy) then
                         ib%gibbs(itemp) = gibbs
                         ib%vol(itemp) = vol
+                        ib%vexcl(itemp) = vexcl
                         ib%lnq(itemp, :) = lnq(:)
                         ib%converged(itemp) = converged
                         ib%populations(itemp, :) = populations(:)
@@ -830,13 +839,14 @@ module qce
         end function ideal_gas_volume
         !=================================================================================
         ! Performs multiple QCE iterations and checks for convergence.
-        subroutine qce_iteration(amf, bxv, temp, v0, vdamp, vol, gibbs, populations, &
+        subroutine qce_iteration(amf, bxv, temp, v0, vdamp, vexcl, vol, gibbs, populations, &
             lnq, cyclus, converged)
             real(dp), intent(in) :: amf
             real(dp), intent(in) :: bxv
             real(dp), intent(in) :: v0
             real(dp), intent(in) :: vdamp
             real(dp), intent(in) :: temp
+            real(dp), intent(out) :: vexcl
             real(dp), intent(out) :: vol
             real(dp), intent(out) :: gibbs
             type(pf_t), dimension(size(clusterset)), intent(out) :: lnq
@@ -853,7 +863,7 @@ module qce
             vol = v0
             vdamp_local = vdamp
             gibbs = huge(0.0)
-            call initialize_populations(populations)
+            call initialize_populations(populations, vexcl)
 
             converged = .false.
             qce_loop: do iteration = 1, global_data%qce_iterations
@@ -861,9 +871,9 @@ module qce
                 ! of them need to be calculated. Later, we only need to update those,
                 ! that depend on the volume.
                 if (iteration == 1) then
-                    call calculate_lnq(lnq, amf, bxv, temp, vol)
+                    call calculate_lnq(lnq, amf, bxv, temp, vol, vexcl)
                 else
-                    call update_lnq(lnq, amf, bxv, temp, vol)
+                    call update_lnq(lnq, amf, bxv, temp, vol, vexcl)
                 end if
     
                 ! Calculate new populations.
@@ -875,13 +885,14 @@ module qce
                     ! that something in the QCE iteration has failed already.
                     vol = v0*vdamp_local
                     vdamp_local = vdamp_local*vdamp
-                    call initialize_populations(populations)
+                    call initialize_populations(populations, vexcl)
                     cycle qce_loop
                 end if
     
                 ! Calculate new volume.
                 old_vol = vol
-                call calculate_volume(vol, vdamp, amf, bxv, temp, populations, success)
+                call calculate_excluded_volume(populations, vexcl)
+                call calculate_volume(vol, vexcl, vdamp, amf, bxv, temp, populations, success)
                 if (.not. success) then
                     ! We couldn't get any physical volume and can't proceed to
                     ! recalculate the partition functions. In order to proceed anyway, we
@@ -890,7 +901,7 @@ module qce
                     ! iteration has failed already.
                     vol = v0*vdamp_local
                     vdamp_local = vdamp_local*vdamp
-                    call initialize_populations(populations)
+                    call initialize_populations(populations, vexcl)
                     cycle qce_loop
                 end if
     
@@ -901,8 +912,9 @@ module qce
         end subroutine qce_iteration
         !=================================================================================
         ! Initializes populations. Assumes monomers, only.
-        subroutine initialize_populations(populations)
+        subroutine initialize_populations(populations, vexcl)
             real(dp), dimension(size(clusterset)), intent(out) :: populations
+            real(dp), intent(out) :: vexcl
     
             integer:: i
     
@@ -911,6 +923,14 @@ module qce
             do i = 1, size(monomer)
                 populations(monomer(i)) = global_data%monomer_amounts(i)*avogadro
             end do
+            
+            ! Excluded volume
+            vexcl = 0.0_dp
+            do i = 1, size(monomer)
+                vexcl = vexcl + global_data%monomer_amounts(i)*clusterset(monomer(i))%volume
+            end do
+            vexcl = vexcl*avogadro*1.0e-30_dp
+
         end subroutine initialize_populations
         !=================================================================================
         ! Calculates populations, by solving the corresponding polynomials.
@@ -1055,9 +1075,28 @@ module qce
             end do
         end subroutine calculate_remaining_populations
         !=================================================================================
-        ! This subroutine calculates the new volume.
-        subroutine calculate_volume(vol, vdamp, amf, bxv, temp, populations, success)
+        ! This updates the excluded volume.
+        subroutine calculate_excluded_volume(populations, vexcl)
             use polynomial
+            real(dp), dimension(size(clusterset)), intent(in) :: populations
+            real(dp), intent(out) :: vexcl
+    
+            integer :: iclust
+
+            vexcl = 0.0_dp
+            do iclust = 1, size(clusterset)
+                associate(c => clusterset(iclust))
+                    vexcl = vexcl + populations(iclust)*c%volume
+                end associate
+            end do
+            vexcl = vexcl*1.0e-30_dp
+        
+        end subroutine calculate_excluded_volume
+        !=================================================================================
+        ! This subroutine calculates the new volume.
+        subroutine calculate_volume(vol, vexcl, vdamp, amf, bxv, temp, populations, success)
+            use polynomial
+            real(dp), intent(in) :: vexcl
             real(dp), intent(in) :: vdamp
             real(dp), intent(in) :: amf
             real(dp), intent(in) :: bxv
@@ -1066,15 +1105,14 @@ module qce
             real(dp), dimension(size(clusterset)), intent(in) :: populations
             logical, intent(out) :: success
     
-            integer :: i, j
             real(dp), dimension(0:3) :: coeffs
             complex(dp), dimension(3) :: roots
             logical, dimension(3) :: valid_roots
 
             ! Calculate the coefficients.
-            coeffs(0) = amf*bxv*global_data%vexcl*sum(global_data%ntot)**2
+            coeffs(0) = amf*bxv*vexcl*sum(global_data%ntot)**2
             coeffs(1) = -amf*sum(global_data%ntot)**2    
-            coeffs(2) = kb*temp*sum(populations) + global_data%press*bxv*global_data%vexcl
+            coeffs(2) = kb*temp*sum(populations) + global_data%press*bxv*vexcl
             coeffs(3) = -global_data%press
     
             ! Solve the volume polynomial.
@@ -1082,7 +1120,7 @@ module qce
     
             ! Check for physical roots.
             where (abs(aimag(roots)) <= global_eps .and. &
-                (real(roots, dp) - bxv*global_data%vexcl) >= global_eps)
+                (real(roots, dp) - bxv*vexcl) >= global_eps)
                 valid_roots = .true.
             else where
                 valid_roots = .false.
@@ -1281,7 +1319,7 @@ module qce
             ! Perform Post-Processing.
             call post_processing(global_data%temp%num, size(clusterset), clusterset(:)%label, best_ib%temp, &
                 best_ib%lnq, best_ib%populations, best_ib%vol, &
-                best_ib%bxv*global_data%vexcl, best_ib%amf, best_ib%bxv, best_ib%amf_temp, best_ib%bxv_temp, &
+                best_ib%bxv*best_ib%vexcl, best_ib%amf, best_ib%bxv, best_ib%amf_temp, best_ib%bxv_temp, &
                 global_data%press, sum(global_data%ntot), best_ib%solution, best_ib%converged)
         end subroutine qce_finalize
         !=================================================================================
@@ -1301,10 +1339,10 @@ module qce
             integer, intent(in) :: nclust
             real(dp), intent(in) :: press
             real(dp), intent(in) :: ntot
-            real(dp), intent(in) :: vexcl
             type(pf_t), dimension(ntemp, nclust) :: lnq_clust
             logical, dimension(ntemp), intent(in) :: converged
             integer, dimension(ntemp), intent(in) :: solution
+            real(dp), dimension(ntemp), intent(in) :: vexcl
             real(dp), dimension(ntemp), intent(in) :: vol
             real(dp), dimension(ntemp), intent(in) :: temp
             real(dp), intent(in) :: amf
@@ -1326,8 +1364,8 @@ module qce
 
             ! Calculate derivatives.
             do itemp = 1, ntemp
-                call calculate_dlnq(d, amf, bxv, amf_temp, bxv_temp, temp(itemp), vol(itemp))
-                call calculate_ddlnq(dd, amf, bxv, amf_temp, bxv_temp, temp(itemp), vol(itemp))
+                call calculate_dlnq(d, amf, bxv, amf_temp, bxv_temp, temp(itemp), vol(itemp), vexcl(itemp))
+                call calculate_ddlnq(dd, amf, bxv, amf_temp, bxv_temp, temp(itemp), vol(itemp), vexcl(itemp))
                 dlnq_clust(itemp, :) = d
                 ddlnq_clust(itemp, :) = dd
             end do

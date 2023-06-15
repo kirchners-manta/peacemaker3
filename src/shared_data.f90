@@ -34,7 +34,7 @@ module shared_data
     type :: global_data_t
         integer :: qce_iterations, newton_iterations, grid_iterations, optimizer, nconverged
         integer, dimension(:), allocatable :: degree
-        real(dp) :: press, mtot, vexcl
+        real(dp) :: press, mtot
         real(dp), dimension(:), allocatable :: ntot
         real(dp) :: max_deviation, vdamp, rotor_cutoff
         type(range_t) :: amf, bxv, temp
