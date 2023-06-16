@@ -198,8 +198,7 @@ module thermo
         ! Writes volume, exclusion volume and status code to file.
         subroutine write_volume(ntemp, converged, temp, vol, vexcl, alpha, solution)
             integer, intent(in) :: ntemp
-            real(dp), dimension(ntemp), intent(in) :: temp, vol, alpha
-            real(dp), intent(in) :: vexcl
+            real(dp), dimension(ntemp), intent(in) :: temp, vexcl, vol, alpha
             integer, dimension(ntemp), intent(in) :: solution
             logical, dimension(ntemp), intent(in) :: converged
 
@@ -220,7 +219,7 @@ module thermo
                     write(myunit, '(4(ES13.6,1X),I35)') &
                         temp(itemp), &
                         1.0e3_dp*vol(itemp), &
-                        1.0e3_dp*vexcl, &
+                        1.0e3_dp*vexcl(itemp), &
                         alpha(itemp), &
                         solution(itemp)
                 end if
@@ -477,8 +476,8 @@ module thermo
             use input, only: pmk_input
             integer, intent(in) :: ntemp, nclust
             real(dp), dimension(ntemp, nclust), intent(in) :: pop
-            real(dp), intent(in) :: press, vexcl
-            real(dp), dimension(ntemp), intent(in) :: temp, vol, dvol
+            real(dp), intent(in) :: press
+            real(dp), dimension(ntemp), intent(in) :: temp, vexcl, vol, dvol
             type(pf_t), dimension(ntemp, nclust), intent(in) :: lnq_clust, dlnq_clust, &
                 ddlnq_clust
             integer, dimension(ntemp), intent(in) :: solution

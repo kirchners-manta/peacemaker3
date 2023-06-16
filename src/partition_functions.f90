@@ -44,14 +44,15 @@ module partition_functions
     contains
         !=================================================================================
         ! Calculates all cluster partition functions.
-        subroutine calculate_lnq(lnq, amf, bxv, temp, vol)
+        subroutine calculate_lnq(lnq, amf, bxv, temp, vol, vexcl)
             type(pf_t), dimension(size(clusterset)), intent(out) :: lnq
             real(dp), intent(in) :: amf
             real(dp), intent(in) :: bxv
-            real(dp), intent(in) :: vol
             real(dp), intent(in) :: temp
+            real(dp), intent(in) :: vol
+            real(dp), intent(in) :: vexcl
     
-            call calculate_lnqtrans(lnq(:)%qtrans, bxv, temp, vol)
+            call calculate_lnqtrans(lnq(:)%qtrans, bxv, temp, vol, vexcl)
             call calculate_lnqvib(lnq(:)%qvib, temp)
             call calculate_lnqrot(lnq(:)%qrot, temp)
             call calculate_lnqelec(lnq(:)%qelec, temp)
@@ -61,21 +62,22 @@ module partition_functions
         end subroutine calculate_lnq
         !=================================================================================
         ! Updates the cluster partition functions that depend on the volume.
-        subroutine update_lnq(lnq, amf, bxv, temp, vol)
+        subroutine update_lnq(lnq, amf, bxv, temp, vol, vexcl)
             type(pf_t), dimension(size(clusterset)), intent(inout) :: lnq
             real(dp), intent(in) :: amf
             real(dp), intent(in) :: bxv
             real(dp), intent(in) :: temp
             real(dp), intent(in) :: vol
+            real(dp), intent(in) :: vexcl
     
-            call calculate_lnqtrans(lnq(:)%qtrans, bxv, temp, vol)
+            call calculate_lnqtrans(lnq(:)%qtrans, bxv, temp, vol, vexcl)
             call calculate_lnqint(lnq(:)%qint, amf, temp, vol)
             lnq(:)%qtot = lnq(:)%qtrans + lnq(:)%qvib + lnq(:)%qrot + lnq(:)%qelec + &
                 lnq(:)%qint
         end subroutine update_lnq
         !=================================================================================
         ! Calculates analytical derivatives of the cluster partition functions.
-        subroutine calculate_dlnq(dlnq, amf, bxv, amf_temp, bxv_temp, temp, vol)
+        subroutine calculate_dlnq(dlnq, amf, bxv, amf_temp, bxv_temp, temp, vol, vexcl)
             type(pf_t), dimension(size(clusterset)), intent(out) :: dlnq
             real(dp), intent(in) :: amf
             real(dp), intent(in) :: bxv
@@ -83,8 +85,9 @@ module partition_functions
             real(dp), intent(in) :: bxv_temp
             real(dp), intent(in) :: temp
             real(dp), intent(in) :: vol
+            real(dp), intent(in) :: vexcl
     
-            call calculate_dlnqtrans(dlnq(:)%qtrans, bxv, bxv_temp, temp, vol)
+            call calculate_dlnqtrans(dlnq(:)%qtrans, bxv, bxv_temp, temp, vol, vexcl)
             call calculate_dlnqvib(dlnq(:)%qvib, temp)
             call calculate_dlnqrot(dlnq(:)%qrot, temp)
             call calculate_dlnqelec(dlnq(:)%qelec, temp)
@@ -94,7 +97,7 @@ module partition_functions
         end subroutine calculate_dlnq
         !=================================================================================
         ! Calculates analytical curvatures of the cluster partition functions.
-        subroutine calculate_ddlnq(ddlnq, amf, bxv, amf_temp, bxv_temp, temp, vol)
+        subroutine calculate_ddlnq(ddlnq, amf, bxv, amf_temp, bxv_temp, temp, vol, vexcl)
             type(pf_t), dimension(size(clusterset)), intent(out) :: ddlnq
             real(dp), intent(in) :: amf
             real(dp), intent(in) :: bxv
@@ -102,8 +105,9 @@ module partition_functions
             real(dp), intent(in) :: bxv_temp
             real(dp), intent(in) :: temp
             real(dp), intent(in) :: vol
+            real(dp), intent(in) :: vexcl
     
-            call calculate_ddlnqtrans(ddlnq(:)%qtrans, bxv, bxv_temp, temp, vol)
+            call calculate_ddlnqtrans(ddlnq(:)%qtrans, bxv, bxv_temp, temp, vol, vexcl)
             call calculate_ddlnqvib(ddlnq(:)%qvib, temp)
             call calculate_ddlnqrot(ddlnq(:)%qrot, temp)
             call calculate_ddlnqelec(ddlnq(:)%qelec, temp)
@@ -114,9 +118,10 @@ module partition_functions
         !=================================================================================
         ! Calculates the translational cluster partition function.
         ! q_trans = (2*pi*m*kb*T/h^2)^1.5*V
-        subroutine calculate_lnqtrans(lnq, bxv, temp, vol)
+        subroutine calculate_lnqtrans(lnq, bxv, temp, vol, vexcl)
             real(dp), dimension(:), intent(out) :: lnq
             real(dp), intent(in) :: vol
+            real(dp), intent(in) :: vexcl
             real(dp), intent(in) :: temp
             real(dp), intent(in) :: bxv
     
@@ -130,7 +135,7 @@ module partition_functions
                 lambda = planck/sqrt(2.0_dp*pi*mass*kb*temp)
     
                 ! Calculate the partition function
-                lnq(iclust) = log(vol-bxv*global_data%vexcl) - 3.0_dp*log(lambda)
+                lnq(iclust) = log(vol-bxv*vexcl) - 3.0_dp*log(lambda)
             end do
         end subroutine calculate_lnqtrans
         !=================================================================================
@@ -265,15 +270,16 @@ module partition_functions
         end subroutine calculate_lnqint
         !=================================================================================
         ! Calculates the temperature derivative of the translational partition function.
-        subroutine calculate_dlnqtrans(dlnq, bxv, bxv_temp, temp, vol)
+        subroutine calculate_dlnqtrans(dlnq, bxv, bxv_temp, temp, vol, vexcl)
             real(dp), dimension(:), intent(out) :: dlnq
             real(dp), intent(in) :: bxv
             real(dp), intent(in) :: bxv_temp
             real(dp), intent(in)  :: temp
             real(dp), intent(in) :: vol
+            real(dp), intent(in) :: vexcl
     
             dlnq(:) = 1.5_dp/temp + &
-                     (global_data%vexcl * bxv_temp)/(-vol+bxv*global_data%vexcl)
+                     (vexcl * bxv_temp)/(-vol+bxv*vexcl)
         end subroutine calculate_dlnqtrans
         !=================================================================================
         ! Calculates the temperature derivative of the vibrational partition function.
@@ -380,16 +386,17 @@ module partition_functions
         !=================================================================================
         ! Calculates the second temperature derivative of the translational partition
         ! function.
-        subroutine calculate_ddlnqtrans(dlnq, bxv, bxv_temp, temp, vol)
+        subroutine calculate_ddlnqtrans(dlnq, bxv, bxv_temp, temp, vol, vexcl)
             real(dp), dimension(:), intent(out) :: dlnq
             real(dp), intent(in) :: bxv
             real(dp), intent(in) :: bxv_temp
             real(dp), intent(in)  :: temp
             real(dp), intent(in) :: vol
+            real(dp), intent(in) :: vexcl
 
             dlnq(:) = -1.5_dp/temp**2 - &
-                     (global_data%vexcl * bxv_temp)**2/(-vol+bxv*global_data%vexcl)**2
-!            write(*,*) temp, vol, bxv*global_data%vexcl
+                     (vexcl * bxv_temp)**2/(-vol+bxv*vexcl)**2
+!            write(*,*) temp, vol, bxv*vexcl
         end subroutine calculate_ddlnqtrans
         !=================================================================================
         ! Calculates the second temperature derivative of the vibrational partition
